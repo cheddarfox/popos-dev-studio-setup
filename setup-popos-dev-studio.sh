@@ -1,10 +1,10 @@
 #!/bin/bash
-# =======================================
+# =========================================
 # setup-popos-dev-studio.sh
 # Full Dev + Media Stack for Pop!_OS 22.04 LTS (NVIDIA Edition)
 # Architected by Ollie (in collaboration with Scott, Auggie, Claude)
 # Attribution: [https://jscottgraham.us](https://jscottgraham.us) | [scott@wordstofilmby.com](mailto:scott@wordstofilmby.com)
-# =======================================
+# =========================================
 
 set -e
 
@@ -48,7 +48,7 @@ sudo apt install -y python3 python3-pip python3-venv
 # Install pyenv (optional, for Python 3.12+ later)
 # -----------------------------------------
 log "Installing pyenv (optional Python version manager)..."
-curl https://pyenv.run | bash
+curl -fsSL https://pyenv.run | bash
 
 # Setup pyenv in shell configs
 if ! grep -q 'pyenv init' ~/.bashrc; then
@@ -63,15 +63,37 @@ fi
 # Install Docker
 # -----------------------------------------
 log "Installing Docker (latest stable)..."
-sudo apt install -y docker.io docker-compose
-sudo systemctl enable docker
+# Uninstall old Docker if any
+sudo apt remove -y docker docker-engine docker.io containerd runc || true
+
+# Set up official Docker repo
+sudo apt update
+sudo apt install -y ca-certificates curl gnupg lsb-release
+
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# Add user to Docker group
 sudo usermod -aG docker $USER
 
 # -----------------------------------------
 # Install NVIDIA Drivers (if not present)
 # -----------------------------------------
-log "Installing NVIDIA drivers and CUDA toolkit..."
-sudo apt install -y nvidia-driver-535 nvidia-cuda-toolkit
+log "Checking for NVIDIA drivers..."
+if ! command -v nvidia-smi &> /dev/null; then
+  log "NVIDIA driver not detected, installing..."
+  sudo apt install -y nvidia-driver-535 nvidia-cuda-toolkit
+else
+  log "NVIDIA driver detected, skipping install."
+fi
 
 # -----------------------------------------
 # Install VS Code
@@ -99,7 +121,7 @@ sudo apt autoremove -y
 # Finishing Steps
 # -----------------------------------------
 log "All core packages installed."
-log "üìè* stant: REBOOT your system manually after this script to complete NT¢“A Adocker group setup."
+log "üîµ Important: REBOOT your system manually after this script to complete NVIDIA and Docker group setup."
 
 # -----------------------------------------
 # Attribution
